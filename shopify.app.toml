@@ -1,0 +1,10 @@
+name = "ブログクラフトAI"
+client_id = "f4891ed8c8ca2351bfe7f0917c494394"
+application_url = "https://blogcraftai.vercel.app"
+embedded = false
+
+[auth]
+redirect_urls = ["https://blogcraftai.vercel.app/api/auth/callback"]
+
+[access_scopes]
+scopes = "write_content,read_content"
