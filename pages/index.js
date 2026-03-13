@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Head from 'next/head';
 
 export default function Home() {
@@ -42,6 +42,18 @@ export default function Home() {
   const [toast, setToast] = useState('');
   const [imgSize, setImgSize] = useState('16:9');
   const previewRef = useRef(null);
+
+  // ─── AUTO TOKEN FROM COOKIE ───
+  useEffect(() => {
+    fetch("/api/auth/token")
+      .then(r => r.json())
+      .then(data => {
+        if (data.token // ─── HELPERS ───// ─── HELPERS ─── data.domain) {
+          setShopifyToken(data.token);
+          setShopifyDomain(data.domain);
+        }
+      }).catch(() => {});
+  }, []);
 
   // ─── HELPERS ───
   const showToast = (msg) => {
