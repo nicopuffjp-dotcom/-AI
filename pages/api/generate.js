@@ -128,7 +128,7 @@ ${links && links.length > 0 ? `- 以下のURLを自然な形で内部リンク�
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts }],
-          generationConfig: { temperature: 0.7, maxOutputTokens: 4096 }
+          generationConfig: { temperature: 0.7, maxOutputTokens: 8192 }
         })
       }
     );
