@@ -82,8 +82,9 @@ export default async function handler(req, res) {
     }
   }
 
+  const supplementText = supplement ? '\n【重要な補足・指示】\n' + supplement + '\nこの指示を必ず守って記事を作成してください。' : '';
   const prompt = `あなたはプロのブログライターです。以下の条件で日本語のブログ記事をHTML形式で作成してください。
-${supplement ? `\n【重要な補足・指示】\n${supplement}\nこの指示を必ず守って記事を作成してください。` : ''}
+${supplementText}
 
 【最重要】文字数は${wordCount}文字を絶対に超えないこと。HTMLタグを除いたテキスト文字数で${wordCount}文字以内に必ず収めること。超えた場合は失敗とみなします。
 
