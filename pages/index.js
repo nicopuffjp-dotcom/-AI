@@ -174,7 +174,6 @@ const rawHtml = previewRef.current
       ? previewRef.current.innerHTML
       : generatedHTML;
     const bodyHtml = rawHtml.replace(/<img[^>]+src="data:[^"]*"[^>]*>/g, '');
-      : generatedHTML;
 
     try {
       const clean = shopifyDomain.replace(/^https?:\/\//, '').replace(/\/$/, '');
