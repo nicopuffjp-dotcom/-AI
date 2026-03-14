@@ -214,25 +214,33 @@ const rawHtml = previewRef.current
     }
   };
 
+  const compressImage = (file, maxWidth=800, quality=0.85) => new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ratio = Math.min(maxWidth / img.width, 1);
+        canvas.width = img.width * ratio;
+        canvas.height = img.height * ratio;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
   const uploadImage = async (file) => {
-    if (!shopifyDomain || !shopifyToken) {
-      showToast('先にShopifyに接続してください');
-      return;
-    }
-    const formData = new FormData();
-    formData.append('image', file);
-    formData.append('domain', shopifyDomain.replace(/^https?:\/\//, '').replace(/\/$/, ''));
-    formData.append('token', shopifyToken);
     try {
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      const dataUrl = await compressImage(file);
       const id = Date.now() + Math.random();
-      setUploadedImages(prev => [...prev, { id, url: data.url, filename: data.filename }]);
+      setUploadedImages(prev => [...prev, { id, url: dataUrl, filename: file.name }]);
       setImagePositions(prev => ({ ...prev, [id]: 'eyecatch' }));
-      showToast('✓ 画像をアップロードしました');
+      showToast('✓ 画像を追加しました');
     } catch (e) {
-      showToast('アップロードエラー：' + e.message);
+      showToast('エラー：' + e.message);
     }
   };const copyHTML = () => {
     const html = previewRef.current ? previewRef.current.innerHTML : generatedHTML;
