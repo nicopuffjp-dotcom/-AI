@@ -121,7 +121,7 @@ const [imgSize, setImgSize] = useState('16:9');
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, wordCount, style, links, platform, template, toggles, categories }),
+        body: JSON.stringify({ topic, wordCount, style, links, platform, template, toggles, categories, images: uploadedImages, imagePositions }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
