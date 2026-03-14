@@ -48,7 +48,7 @@ export default function Home() {
     fetch("/api/auth/token")
       .then(r => r.json())
       .then(data => {
-        if (data.token // ─── HELPERS ───// ─── HELPERS ─── data.domain) {
+        if (data.token && data.domain) {
           setShopifyToken(data.token);
           setShopifyDomain(data.domain);
         }
