@@ -41,6 +41,7 @@ export default function Home() {
   const [editMode, setEditMode] = useState(false);
   const [toast, setToast] = useState('');
 const [imgSize, setImgSize] = useState('16:9');
+  const [template, setTemplate] = useState('circuit');
   const [uploadedImages, setUploadedImages] = useState([]);
   const [imagePositions, setImagePositions] = useState({});
   const previewRef = useRef(null);
@@ -120,7 +121,7 @@ const [imgSize, setImgSize] = useState('16:9');
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, wordCount, style, links, platform }),
+        body: JSON.stringify({ topic, wordCount, style, links, platform, template, toggles, categories }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -549,6 +550,30 @@ const rawHtml = previewRef.current
                   </>
                 )}
               </div>
+            </div>
+          </div>
+
+          {/* Template selector */}
+          <div>
+            <div style={labelStyle}>デザインテンプレート</div>
+            <div style={{display:'flex',flexDirection:'column',gap:6}}>
+              {[
+                {id:'circuit',label:'CIRCUIT',desc:'エレクトリック・テック',color:'#00d4ff',bg:'#0d1117'},
+                {id:'bangking',label:'BANGKING',desc:'エネルギー・インパクト',color:'#f97316',bg:'#120a00'},
+                {id:'whitetech',label:'WHITE TECH',desc:'クリーン・企業・ホワイト',color:'#4f46e5',bg:'#eef2ff'},
+                {id:'neonchrome',label:'NEON CHROME',desc:'サイバー・デュアルカラー',color:'#00ffc8',bg:'#0a0a0a'},
+                {id:'urbansmoke',label:'URBAN SMOKE',desc:'アーバン・ストリート',color:'#f97316',bg:'#1a1f2e'},
+              ].map(t => (
+                <div key={t.id} onClick={() => setTemplate(t.id)}
+                  style={{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',borderRadius:8,border:`1.5px solid ${template===t.id?t.color:'#E5E3DC'}`,background:template===t.id?t.bg:'#fff',cursor:'pointer',transition:'all 0.15s'}}>
+                  <div style={{width:10,height:10,borderRadius:'50%',background:t.color,flexShrink:0}}/>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:11,fontWeight:600,color:template===t.id?t.color:'#1A1916'}}>{t.label}</div>
+                    <div style={{fontSize:9,color:template===t.id?'#9ca3af':'#9B9892'}}>{t.desc}</div>
+                  </div>
+                  {template===t.id && <div style={{fontSize:10,color:t.color}}>✓</div>}
+                </div>
+              ))}
             </div>
           </div>
 
