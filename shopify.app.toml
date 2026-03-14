@@ -8,3 +8,6 @@ redirect_urls = ["https://blogcraftai.vercel.app/api/auth/callback"]
 
 [access_scopes]
 scopes = "write_content,read_content"
+
+[webhooks]
+api_version = "2026-01"
