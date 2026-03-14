@@ -40,7 +40,9 @@ export default function Home() {
   // UI
   const [editMode, setEditMode] = useState(false);
   const [toast, setToast] = useState('');
-  const [imgSize, setImgSize] = useState('16:9');
+const [imgSize, setImgSize] = useState('16:9');
+  const [uploadedImages, setUploadedImages] = useState([]);
+  const [imagePositions, setImagePositions] = useState({});
   const previewRef = useRef(null);
 
   // ─── AUTO TOKEN FROM COOKIE ───
@@ -123,7 +125,31 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      setGeneratedHTML(data.html);
+let html = data.html;
+      const eyecatch = uploadedImages.filter(img => imagePositions[img.id] === 'eyecatch');
+      const middle = uploadedImages.filter(img => imagePositions[img.id] === 'middle');
+      const afterH2 = uploadedImages.filter(img => imagePositions[img.id] === 'afterh2');
+      const bottom = uploadedImages.filter(img => imagePositions[img.id] === 'bottom');
+      if (eyecatch.length > 0) {
+        const imgs = eyecatch.map(img => `<img src="${img.url}" alt="${img.filename}" style="width:100%;border-radius:8px;margin-bottom:16px;">`).join('');
+        html = imgs + html;
+      }
+      if (afterH2.length > 0) {
+        const imgs = afterH2.map(img => `<img src="${img.url}" alt="${img.filename}" style="width:100%;border-radius:8px;margin:16px 0;">`).join('');
+        html = html.replace(/<\/h2>/, `</h2>${imgs}`);
+      }
+      if (middle.length > 0) {
+        const imgs = middle.map(img => `<img src="${img.url}" alt="${img.filename}" style="width:100%;border-radius:8px;margin:16px 0;">`).join('');
+        const half = Math.floor(html.length / 2);
+        const cut = html.indexOf('</p>', half);
+        if (cut !== -1) html = html.slice(0, cut + 4) + imgs + html.slice(cut + 4);
+        else html = html + imgs;
+      }
+      if (bottom.length > 0) {
+        const imgs = bottom.map(img => `<img src="${img.url}" alt="${img.filename}" style="width:100%;border-radius:8px;margin-top:16px;">`).join('');
+        html = html + imgs;
+      }
+      setGeneratedHTML(html);
       setGeneratedTitle(data.title);
       setProgress(5);
       showToast('✓ 記事が生成されました');
@@ -187,7 +213,27 @@ export default function Home() {
     }
   };
 
-  const copyHTML = () => {
+  const uploadImage = async (file) => {
+    if (!shopifyDomain || !shopifyToken) {
+      showToast('先にShopifyに接続してください');
+      return;
+    }
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('domain', shopifyDomain.replace(/^https?:\/\//, '').replace(/\/$/, ''));
+    formData.append('token', shopifyToken);
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      const id = Date.now() + Math.random();
+      setUploadedImages(prev => [...prev, { id, url: data.url, filename: data.filename }]);
+      setImagePositions(prev => ({ ...prev, [id]: 'eyecatch' }));
+      showToast('✓ 画像をアップロードしました');
+    } catch (e) {
+      showToast('アップロードエラー：' + e.message);
+    }
+  };const copyHTML = () => {
     const html = previewRef.current ? previewRef.current.innerHTML : generatedHTML;
     navigator.clipboard.writeText(html).then(() => showToast('HTMLをコピーしました'));
   };
@@ -499,24 +545,31 @@ export default function Home() {
 
           {/* Image settings */}
           <div>
-            <div style={labelStyle}>画像設定</div>
+            <div style={labelStyle}>画像アップロード</div>
             <div style={{background:'#F7F6F3',border:'1px solid #E5E3DC',borderRadius:10,padding:13}}>
-              <div style={{fontSize:11,fontWeight:500,color:'#6B6760',marginBottom:7}}>画像サイズ</div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:5,marginBottom:10}}>
-                {IMG_SIZES.map(s => (
-                  <div key={s.sub} onClick={() => setImgSize(s.sub)}
-                    style={{padding:'6px 4px',borderRadius:6,border:`1.5px solid ${imgSize===s.sub?'#2563EB':'#E5E3DC'}`,background:imgSize===s.sub?'#EEF3FD':'white',cursor:'pointer',textAlign:'center',fontSize:10,fontWeight:500,color:imgSize===s.sub?'#2563EB':'#6B6760',transition:'all 0.15s'}}>
-                    {s.label}
-                    <span style={{display:'block',fontSize:9,fontFamily:'DM Mono',color:'#9B9892',marginTop:1}}>{s.sub}</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{fontSize:11,fontWeight:500,color:'#6B6760',marginBottom:5}}>画像ソース</div>
-              <select style={{width:'100%',border:'1.5px solid #E5E3DC',borderRadius:8,padding:'6px 9px',fontSize:11,background:'white',fontFamily:'DM Sans',outline:'none',color:'#1A1916'}}>
-                <option>Unsplash（無料・高品質）</option>
-                <option>Pexels（無料）</option>
-                <option>独自アップロード</option>
-              </select>
+              <label style={{display:'block',border:'2px dashed #D4D0C8',borderRadius:8,padding:'14px',textAlign:'center',cursor:'pointer',color:'#6B6760',fontSize:11}}>
+                <input type="file" accept="image/*" multiple onChange={e=>Array.from(e.target.files).forEach(uploadImage)} style={{display:'none'}}/>
+                📎 クリックして画像を選択（複数可）
+              </label>
+              {uploadedImages.length > 0 && (
+                <div style={{marginTop:10,display:'flex',flexDirection:'column',gap:6}}>
+                  {uploadedImages.map(img => (
+                    <div key={img.id} style={{display:'flex',alignItems:'center',gap:7,background:'white',border:'1px solid #E5E3DC',borderRadius:6,padding:'6px 9px'}}>
+                      <img src={img.url} style={{width:36,height:36,objectFit:'cover',borderRadius:4,flexShrink:0}}/>
+                      <div style={{flex:1,overflow:'hidden'}}>
+                        <div style={{fontSize:10,color:'#6B6760',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{img.filename}</div>
+                        <select value={imagePositions[img.id]||'eyecatch'} onChange={e=>setImagePositions(p=>({...p,[img.id]:e.target.value}))} style={{fontSize:10,border:'1px solid #E5E3DC',borderRadius:4,padding:'2px 4px',marginTop:2,background:'#F7F6F3'}}>
+                          <option value="eyecatch">冒頭（アイキャッチ）</option>
+                          <option value="afterh2">H2の後</option>
+                          <option value="middle">記事の中間</option>
+                          <option value="bottom">末尾</option>
+                        </select>
+                      </div>
+                      <button onClick={()=>setUploadedImages(p=>p.filter(i=>i.id!==img.id))} style={{color:'#9B9892',border:'none',background:'none',cursor:'pointer',fontSize:13,padding:2}}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
