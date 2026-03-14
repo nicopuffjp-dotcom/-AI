@@ -4,6 +4,7 @@ import Head from 'next/head';
 export default function Home() {
   // ─── STATE ───
   const [topic, setTopic] = useState('');
+  const [supplement, setSupplement] = useState('');
   const [wordCount, setWordCount] = useState(2000);
   const [style, setStyle] = useState('pro');
   const [platform, setPlatform] = useState('shopify');
@@ -121,7 +122,7 @@ const [imgSize, setImgSize] = useState('16:9');
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, wordCount, style, links, platform, template, toggles, categories, images: uploadedImages, imagePositions }),
+        body: JSON.stringify({ topic, wordCount, style, links, platform, template, toggles, categories, images: uploadedImages, imagePositions, supplement }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -371,6 +372,10 @@ const rawHtml = previewRef.current
               placeholder="例：ECサイトで売上を伸ばす方法、秋のファッショントレンド..."
               style={{width:'100%',border:'none',outline:'none',fontSize:17,fontFamily:'DM Sans',color:'#1A1916',background:'none',resize:'none',lineHeight:1.5,minHeight:52}}
               rows={3}/>
+            <textarea value={supplement} onChange={e => setSupplement(e.target.value)}
+              placeholder="補足・注意事項（例：禁止ワード：競合他社名、必ず含める情報：価格5,500円、ターゲット：20代男性...）"
+              style={{width:'100%',border:'1px solid #E5E3DC',outline:'none',fontSize:12,fontFamily:'DM Sans',color:'#1A1916',background:'#F7F6F3',resize:'none',lineHeight:1.5,minHeight:52,borderRadius:8,padding:'8px 10px',marginTop:8}}
+              rows={2}/>
             <div style={{display:'flex',gap:5,flexWrap:'wrap',marginTop:6}}>
               {['ECサイト運営','商品レビュー','Shopify活用','マーケティング','ブランディング'].map(kw => (
                 <span key={kw} onClick={() => setTopic(p => p ? p+'、'+kw : kw)}
