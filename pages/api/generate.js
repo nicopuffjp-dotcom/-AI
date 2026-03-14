@@ -1,6 +1,6 @@
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
-  const { topic, wordCount, style, toggles, links, categories, template, images, imagePositions } = req.body;
+  const { topic, wordCount, style, toggles, links, categories, template, images, imagePositions, supplement } = req.body;
   if (!topic) return res.status(400).json({ error: 'topic required' });
 
   const apiKey = process.env.GEMINI_API_KEY;
