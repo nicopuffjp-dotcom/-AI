@@ -71,11 +71,15 @@ export default async function handler(req, res) {
   if (links && links.length > 0) {
     for (const link of links.slice(0, 3)) {
       try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
         const r = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/crawl`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: link })
+          body: JSON.stringify({ url: link }),
+          signal: controller.signal
         });
+        clearTimeout(timeout);
         const d = await r.json();
         if (d.text) crawledText += `\n\n【${link}の内容】\n${d.text}`;
       } catch(e) {}
