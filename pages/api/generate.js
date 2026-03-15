@@ -151,7 +151,11 @@ ${links && links.length > 0 ? `- 以下のURLを自然な形で内部リンク�
     html = html.replace(/<p([^>]*)>/g, '<p$1 style="' + tmpl.p + '">');
     html = html.replace(/<strong([^>]*)>/g, '<strong$1 style="' + tmpl.strong + '">');
     html = html.replace(/<blockquote([^>]*)>/g, '<blockquote$1 style="' + tmpl.box + '">');
-    html = html.replace(/<a([^>]*href[^>]*)>/g, '<a$1 style="display:inline-block;background:' + tmpl.link + ';color:#fff;padding:6px 16px;border-radius:6px;text-decoration:none;font-weight:600;font-size:13px;margin:4px 2px;">');
+    // 目次内のリンクは通常スタイル、それ以外はボタンスタイル
+    html = html.replace(/<nav[^>]*>([\s\S]*?)<\/nav>/g, function(match) {
+      return match.replace(/<a([^>]*href[^>]*)>/g, '<a$1 style="color:' + tmpl.link + ';text-decoration:none;">');
+    });
+    html = html.replace(/<a([^>]*href[^>]*)>(?![^<]*<\/nav>)/g, '<a$1 style="display:inline-block;background:' + tmpl.link + ';color:#fff;padding:8px 20px;border-radius:20px;text-decoration:none;font-weight:600;font-size:13px;margin:12px 0;">');
     html = html.replace(/<ul([^>]*)>/g, '<ul$1 style="' + tmpl.ul + '">');
     html = html.replace(/<li([^>]*)>/g, '<li$1 style="' + tmpl.li + '">');
     html = '<div style="' + tmpl.wrapper + '">' + html + '</div>';
