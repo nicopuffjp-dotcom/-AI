@@ -38,6 +38,16 @@ export default function Home() {
   const [publishing, setPublishing] = useState(false);
   const [publishResult, setPublishResult] = useState(null); // {success, message, url}
 
+  // SEO
+  const [seoKeyword, setSeoKeyword] = useState('');
+  const [seoAnalyzing, setSeoAnalyzing] = useState(false);
+  const [seoData, setSeoData] = useState(null);
+  const [seoScore, setSeoScore] = useState(null);
+  const [mainKeyword, setMainKeyword] = useState('');
+  const [targetDensity, setTargetDensity] = useState(2);
+  const [metaTitle, setMetaTitle] = useState('');
+  const [metaDesc, setMetaDesc] = useState('');
+
   // UI
   const [editMode, setEditMode] = useState(false);
   const [toast, setToast] = useState('');
@@ -106,6 +116,32 @@ const [imgSize, setImgSize] = useState('16:9');
     }
   };
 
+  // ─── SEO ANALYZE ───
+  const analyzeSEO = async () => {
+    if (!seoKeyword.trim()) { showToast('キーワードを入力してください'); return; }
+    setSeoAnalyzing(true);
+    setSeoData(null);
+    try {
+      const res = await fetch('/api/seo-analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keyword: seoKeyword }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setSeoData(data);
+      setMainKeyword(data.mainKeyword || seoKeyword);
+      if (data.metaTitle) setMetaTitle(data.metaTitle);
+      if (data.metaDescription) setMetaDesc(data.metaDescription);
+      if (!topic) setTopic(seoKeyword);
+      showToast('✓ SEO分析完了！');
+    } catch (err) {
+      showToast('SEO分析エラー：' + err.message);
+    } finally {
+      setSeoAnalyzing(false);
+    }
+  };
+
   // ─── GENERATE ───
   const generate = async () => {
     if (!topic.trim()) { showToast('テーマを入力してください'); return; }
@@ -122,7 +158,7 @@ const [imgSize, setImgSize] = useState('16:9');
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, wordCount, style, links, platform, template, toggles, categories, images: uploadedImages, imagePositions, supplement }),
+        body: JSON.stringify({ topic, wordCount, style, links, platform, template, toggles, categories, images: uploadedImages, imagePositions, supplement, seoData, mainKeyword, targetDensity }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -153,6 +189,9 @@ let html = data.html;
       }
       setGeneratedHTML(html);
       setGeneratedTitle(data.title);
+      if (data.seoScore) setSeoScore(data.seoScore);
+      if (data.metaTitle) setMetaTitle(data.metaTitle);
+      if (data.metaDesc) setMetaDesc(data.metaDesc);
       setProgress(5);
       showToast('✓ 記事が生成されました');
     } catch (err) {
@@ -364,6 +403,168 @@ const rawHtml = previewRef.current
 
         {/* ── MAIN ── */}
         <div style={{overflowY:'auto',padding:24,display:'flex',flexDirection:'column',gap:14}}>
+
+          {/* SEO分析パネル */}
+          <div style={{background:'#fff',border:'1.5px solid #E5E3DC',borderRadius:16,padding:18,boxShadow:'0 1px 3px rgba(0,0,0,0.06)'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+              <div style={{fontSize:10,fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase',color:'#9B9892'}}>SEOキーワード分析</div>
+              {seoData && <span style={{fontSize:10,background:'#F0FDF4',color:'#16A34A',border:'1px solid #BBF7D0',borderRadius:10,padding:'2px 9px',fontWeight:600}}>✓ 分析済み</span>}
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <input value={seoKeyword} onChange={e=>setSeoKeyword(e.target.value)}
+                onKeyDown={e=>e.key==='Enter'&&analyzeSEO()}
+                placeholder="狙うキーワードを入力（例：電子タバコ ニコチンなし おすすめ）"
+                style={{flex:1,border:'1.5px solid #E5E3DC',borderRadius:8,padding:'8px 12px',fontSize:13,fontFamily:'DM Sans',outline:'none',color:'#1A1916',background:'#F7F6F3'}}/>
+              <button onClick={analyzeSEO} disabled={seoAnalyzing}
+                style={{padding:'8px 16px',background:seoAnalyzing?'#93C5FD':'#1D4ED8',color:'white',border:'none',borderRadius:8,fontSize:12,fontWeight:600,fontFamily:'DM Sans',cursor:seoAnalyzing?'not-allowed':'pointer',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:6}}>
+                {seoAnalyzing ? <><span style={spinnerStyle}/> 分析中</> : '🔍 分析'}
+              </button>
+            </div>
+
+            {seoData && (
+              <div style={{marginTop:14}}>
+                {/* 基本情報 */}
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:12}}>
+                  <div style={{background:'#F7F6F3',borderRadius:8,padding:'8px 10px',textAlign:'center'}}>
+                    <div style={{fontSize:18,fontWeight:700,color:'#2563EB'}}>{seoData.monthlyVolume}</div>
+                    <div style={{fontSize:10,color:'#9B9892',marginTop:2}}>月間検索数</div>
+                  </div>
+                  <div style={{background:'#F7F6F3',borderRadius:8,padding:'8px 10px',textAlign:'center'}}>
+                    <div style={{fontSize:18,fontWeight:700,color:seoData.difficulty==='easy'?'#16A34A':seoData.difficulty==='hard'?'#DC2626':'#D97706'}}>
+                      {seoData.difficulty==='easy'?'低':'seoData.difficulty'==='hard'?'高':'中'}
+                    </div>
+                    <div style={{fontSize:10,color:'#9B9892',marginTop:2}}>競合難易度</div>
+                  </div>
+                  <div style={{background:'#F7F6F3',borderRadius:8,padding:'8px 10px',textAlign:'center'}}>
+                    <div style={{fontSize:14,fontWeight:700,color:'#1A1916'}}>{seoData.mainKeyword}</div>
+                    <div style={{fontSize:10,color:'#9B9892',marginTop:2}}>メインKW</div>
+                  </div>
+                </div>
+
+                {/* 検索意図 */}
+                <div style={{background:'#EFF6FF',border:'1px solid #BFDBFE',borderRadius:8,padding:'8px 12px',marginBottom:10,fontSize:12,color:'#1D4ED8',lineHeight:1.6}}>
+                  <span style={{fontWeight:600}}>検索意図：</span>{seoData.searchIntent}
+                </div>
+
+                {/* 必須トピック */}
+                <div style={{marginBottom:10}}>
+                  <div style={{fontSize:11,fontWeight:600,color:'#6B6760',marginBottom:6}}>必須トピック</div>
+                  <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                    {seoData.mustTopics?.map((t,i) => (
+                      <div key={i} style={{display:'flex',alignItems:'flex-start',gap:8,padding:'6px 10px',background:'#F7F6F3',borderRadius:6,fontSize:11}}>
+                        <span style={{padding:'1px 7px',borderRadius:10,fontSize:10,fontWeight:600,flexShrink:0,
+                          background:t.priority==='high'?'#FEE2E2':t.priority==='medium'?'#FEF3C7':'#F0F9FF',
+                          color:t.priority==='high'?'#DC2626':t.priority==='medium'?'#D97706':'#0284C7'}}>
+                          {t.priority==='high'?'必須':t.priority==='medium'?'推奨':'任意'}
+                        </span>
+                        <div>
+                          <div style={{fontWeight:600,color:'#1A1916'}}>{t.title}</div>
+                          <div style={{color:'#9B9892',fontSize:10,marginTop:1}}>{t.reason}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* LSI・関連KW */}
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:600,color:'#6B6760',marginBottom:5}}>LSIキーワード</div>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                      {seoData.lsiKeywords?.map((kw,i)=>(
+                        <span key={i} style={{padding:'2px 8px',background:'#EEF2FF',color:'#4F46E5',borderRadius:10,fontSize:10,fontWeight:500}}>{kw}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:600,color:'#6B6760',marginBottom:5}}>関連キーワード</div>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                      {seoData.relatedKeywords?.map((kw,i)=>(
+                        <span key={i} style={{padding:'2px 8px',background:'#F0FDF4',color:'#16A34A',borderRadius:10,fontSize:10,fontWeight:500}}>{kw}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* KW密度設定 */}
+                <div style={{display:'flex',alignItems:'center',gap:12,padding:'8px 10px',background:'#F7F6F3',borderRadius:8,marginBottom:10}}>
+                  <div style={{fontSize:11,color:'#6B6760',flexShrink:0}}>KW密度目標</div>
+                  <input type="range" min={1} max={4} step={0.5} value={targetDensity}
+                    onChange={e=>setTargetDensity(Number(e.target.value))}
+                    style={{flex:1,accentColor:'#2563EB',cursor:'pointer'}}/>
+                  <div style={{fontSize:13,fontWeight:700,color:'#2563EB',minWidth:28,fontFamily:'DM Mono'}}>{targetDensity}%</div>
+                </div>
+
+                {/* メタ情報 */}
+                <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                  <div>
+                    <div style={{fontSize:10,color:'#9B9892',marginBottom:3}}>メタタイトル</div>
+                    <input value={metaTitle} onChange={e=>setMetaTitle(e.target.value)}
+                      style={{width:'100%',border:'1.5px solid #E5E3DC',borderRadius:6,padding:'6px 9px',fontSize:12,fontFamily:'DM Sans',outline:'none',color:'#1A1916',background:'white'}}/>
+                  </div>
+                  <div>
+                    <div style={{fontSize:10,color:'#9B9892',marginBottom:3}}>メタディスクリプション</div>
+                    <textarea value={metaDesc} onChange={e=>setMetaDesc(e.target.value)} rows={2}
+                      style={{width:'100%',border:'1.5px solid #E5E3DC',borderRadius:6,padding:'6px 9px',fontSize:12,fontFamily:'DM Sans',outline:'none',color:'#1A1916',background:'white',resize:'none',lineHeight:1.5}}/>
+                  </div>
+                </div>
+
+                {/* アドバイス */}
+                {seoData.tips?.length > 0 && (
+                  <div style={{marginTop:10,padding:'8px 12px',background:'#FFFBEB',border:'1px solid #FDE68A',borderRadius:8}}>
+                    <div style={{fontSize:10,fontWeight:600,color:'#D97706',marginBottom:4}}>SEOアドバイス</div>
+                    {seoData.tips.map((t,i)=>(
+                      <div key={i} style={{fontSize:11,color:'#92400E',lineHeight:1.6}}>・{t}</div>
+                    ))}
+                  </div>
+                )}
+
+                {/* 構成プレビュー */}
+                {seoData.suggestedStructure?.length > 0 && (
+                  <div style={{marginTop:10}}>
+                    <div style={{fontSize:11,fontWeight:600,color:'#6B6760',marginBottom:6}}>推奨記事構成</div>
+                    <div style={{background:'#F7F6F3',borderRadius:8,padding:'8px 10px'}}>
+                      {seoData.suggestedStructure.map((s,i)=>(
+                        <div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'4px 0',borderBottom:i<seoData.suggestedStructure.length-1?'1px solid #E5E3DC':'none'}}>
+                          <span style={{fontSize:9,fontWeight:700,padding:'2px 5px',borderRadius:3,
+                            background:s.type==='h1'?'#1D4ED8':s.type==='h2'?'#16A34A':'#9CA3AF',color:'white',minWidth:24,textAlign:'center'}}>
+                            {s.type.toUpperCase()}
+                          </span>
+                          <span style={{fontSize:11,color:'#1A1916',flex:1}}>{s.heading}</span>
+                          {s.chars>0&&<span style={{fontSize:10,color:'#9B9892',fontFamily:'DM Mono',flexShrink:0}}>{s.chars}字</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <button onClick={generate} disabled={generating}
+                  style={{width:'100%',marginTop:12,padding:'10px',background:generating?'#93C5FD':'#2563EB',color:'white',border:'none',borderRadius:10,fontSize:13,fontWeight:600,fontFamily:'DM Sans',cursor:generating?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+                  {generating?<><span style={spinnerStyle}/> 生成中...</>:'✦ このSEO構成で記事を生成する'}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* SEOスコア（生成後） */}
+          {seoScore && (
+            <div style={{background:'#fff',border:'1.5px solid #E5E3DC',borderRadius:16,padding:'14px 18px'}}>
+              <div style={{fontSize:10,fontWeight:600,letterSpacing:'0.06em',textTransform:'uppercase',color:'#9B9892',marginBottom:10}}>SEOスコア</div>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8}}>
+                {[
+                  {label:'総合',val:seoScore.overall,suffix:'点',color:seoScore.overall>=80?'#16A34A':seoScore.overall>=60?'#D97706':'#DC2626'},
+                  {label:'文字数',val:seoScore.actualChars?.toLocaleString(),suffix:'字',color:'#2563EB'},
+                  {label:'KW密度',val:seoScore.kwDensity,suffix:'%',color:seoScore.kwDensity>=1&&seoScore.kwDensity<=3?'#16A34A':'#D97706'},
+                  {label:'H2数',val:seoScore.h2Count,suffix:'個',color:seoScore.h2Count>=4?'#16A34A':'#D97706'},
+                ].map(s=>(
+                  <div key={s.label} style={{textAlign:'center',background:'#F7F6F3',borderRadius:8,padding:'8px 6px'}}>
+                    <div style={{fontSize:20,fontWeight:700,color:s.color}}>{s.val}<span style={{fontSize:11}}>{s.suffix}</span></div>
+                    <div style={{fontSize:10,color:'#9B9892',marginTop:2}}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Hero input */}
           <div style={{background:'#fff',border:'1.5px solid #E5E3DC',borderRadius:16,padding:18,boxShadow:'0 1px 3px rgba(0,0,0,0.06)'}}>
